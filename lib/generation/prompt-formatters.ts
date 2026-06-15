@@ -2,7 +2,7 @@
  * Prompt and context building utilities for the generation pipeline.
  */
 
-import type { PdfImage } from '@/lib/types/generation';
+import type { PdfImage, StudentProfile } from '@/lib/types/generation';
 import type { AgentInfo, SceneGenerationContext } from './pipeline-types';
 
 /** Build a course context string for injection into action prompts */
@@ -69,6 +69,53 @@ export function formatTeacherPersonaForPrompt(agents?: AgentInfo[]): string {
   if (!teacher?.persona) return '';
 
   return `Teacher Persona:\nName: ${teacher.name}\n${teacher.persona}\n\nAdapt the content style and tone to match this teacher's personality. IMPORTANT: The teacher's name and identity must NOT appear on the slides — no "Teacher ${teacher.name}'s tips", no "Teacher's message", etc. Slides should read as neutral, professional visual aids.`;
+}
+
+/**
+ * Format a detailed student profile for prompt injection.
+ * Used to personalize outlines, quizzes, and worksheets for a specific learner.
+ */
+export function formatStudentProfile(profile?: StudentProfile): string {
+  if (!profile) return '';
+
+  const lines: string[] = [];
+  lines.push('## Student Profile');
+  lines.push(`Name: ${profile.name || 'Unknown'}`);
+
+  if (profile.grade) lines.push(`Grade: ${profile.grade}`);
+  if (profile.class) lines.push(`Class: ${profile.class}`);
+  if (profile.school) lines.push(`School: ${profile.school}`);
+
+  if (profile.engagementLevel) {
+    lines.push(`Engagement level: ${profile.engagementLevel}`);
+  }
+  if (typeof profile.attendanceRate === 'number') {
+    lines.push(`Attendance rate: ${Math.round(profile.attendanceRate * 100)}%`);
+  }
+
+  if (profile.strongTopics && profile.strongTopics.length > 0) {
+    lines.push(`Strong topics: ${profile.strongTopics.join(', ')}`);
+  }
+
+  if (profile.weakTopics && profile.weakTopics.length > 0) {
+    lines.push(`Weak topics requiring practice: ${profile.weakTopics.join(', ')}`);
+  }
+
+  if (profile.pastPerformance && profile.pastPerformance.length > 0) {
+    lines.push('Past performance:');
+    for (const perf of profile.pastPerformance) {
+      const accuracy = Math.round(perf.accuracy * 100);
+      const when = perf.lastAttemptedAt ? ` (last attempted ${perf.lastAttemptedAt})` : '';
+      lines.push(`- ${perf.topic}: ${accuracy}% correct over ${perf.attempts} attempt(s)${when}`);
+    }
+  }
+
+  lines.push('');
+  lines.push(
+    "Use this profile to personalize the content: emphasize weak topics, provide appropriate challenge on strong topics, and adapt difficulty to the student's level and engagement.",
+  );
+
+  return lines.join('\n');
 }
 
 /**

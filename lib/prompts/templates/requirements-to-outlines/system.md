@@ -58,6 +58,14 @@ Infer the course language from all available signals and produce:
 - **PBL Scene**: Complete project-based learning module with roles, issues, and collaboration workflow. Ideal for complex projects, engineering practice, and research tasks
 - **Duration Control**: Each scene should be 1-3 minutes (PBL scenes are longer, typically 15-30 minutes)
 
+{{#if userProfile}}
+## Learner Profile
+
+{{userProfile}}
+
+Design this course specifically for the learner described above. Prioritize their weak topics, match difficulty to their level, and use their strong topics as anchors for new concepts.
+{{/if}}
+
 ### Instructional Design Principles
 
 - **Clear Purpose**: Each scene has a clear teaching function

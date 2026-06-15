@@ -9,6 +9,7 @@ import type {
   ToolCallRequest,
 } from '@/lib/types/chat';
 import type { SceneOutline } from '@/lib/types/generation';
+import type { StudentRecord } from '@/lib/types/worksheet';
 import type { UIMessage } from 'ai';
 import { createLogger } from '@/lib/logger';
 
@@ -186,6 +187,15 @@ export interface VoiceProfileRecord {
   updatedAt: number;
 }
 
+/**
+ * StudentRecord table - Local cache of student profiles for worksheet generation
+ */
+export interface StudentRecordLocal {
+  id: string;
+  record: StudentRecord;
+  syncedAt: number;
+}
+
 /** Build the compound primary key for mediaFiles: `${stageId}:${elementId}` */
 export function mediaFileKey(stageId: string, elementId: string): string {
   return `${stageId}:${elementId}`;
@@ -212,6 +222,7 @@ class MAICDatabase extends Dexie {
   mediaFiles!: EntityTable<MediaFileRecord, 'id'>;
   generatedAgents!: EntityTable<GeneratedAgentRecord, 'id'>;
   voiceProfiles!: EntityTable<VoiceProfileRecord, 'id'>;
+  students!: EntityTable<StudentRecordLocal, 'id'>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -377,6 +388,22 @@ class MAICDatabase extends Dexie {
       mediaFiles: 'id, stageId, [stageId+type]',
       generatedAgents: 'id, stageId',
       voiceProfiles: 'id, providerId, kind, updatedAt',
+    });
+
+    // Version 11: Add local student roster cache for worksheet personalization.
+    this.version(11).stores({
+      stages: 'id, updatedAt',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      voiceProfiles: 'id, providerId, kind, updatedAt',
+      students: 'id, syncedAt',
     });
   }
 }

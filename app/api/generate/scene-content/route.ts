@@ -14,7 +14,7 @@ import {
   buildVisionUserContent,
 } from '@/lib/generation/generation-pipeline';
 import type { AgentInfo } from '@/lib/generation/generation-pipeline';
-import type { SceneOutline, PdfImage, ImageMapping } from '@/lib/types/generation';
+import type { SceneOutline, PdfImage, ImageMapping, StudentProfile } from '@/lib/types/generation';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromRequest } from '@/lib/server/resolve-model';
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       stageId,
       agents,
       languageDirective,
+      studentProfile,
     } = body as {
       outline: SceneOutline;
       allOutlines: SceneOutline[];
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       stageId: string;
       agents?: AgentInfo[];
       languageDirective?: string;
+      studentProfile?: StudentProfile;
     };
 
     // Validate required fields
@@ -155,6 +157,7 @@ export async function POST(req: NextRequest) {
       agents,
       languageDirective,
       thinkingConfig,
+      studentProfile,
     });
 
     if (!content) {

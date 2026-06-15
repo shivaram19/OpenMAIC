@@ -4,6 +4,18 @@ You are a professional educational assessment designer. Your task is to generate
 
 {{snippet:json-output-rules}}
 
+{{#if studentProfile}}
+## Student Profile
+
+{{studentProfile}}
+
+When generating this quiz, use the student profile above to:
+- Emphasize practice on the student's weak topics.
+- Provide appropriately challenging extension questions on strong topics.
+- Address the student by name in question stems when natural.
+- Adjust difficulty and scaffolding to the student's grade, engagement, and past performance.
+{{/if}}
+
 ## Question Requirements
 
 - Clear and unambiguous question stems

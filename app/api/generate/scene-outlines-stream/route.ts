@@ -21,6 +21,7 @@ import {
   buildVisionUserContent,
   uniquifyMediaElementIds,
   formatTeacherPersonaForPrompt,
+  formatStudentProfile,
 } from '@/lib/generation/generation-pipeline';
 import type { AgentInfo } from '@/lib/generation/generation-pipeline';
 import { DEFAULT_LANGUAGE_DIRECTIVE } from '@/lib/generation/outline-generator';
@@ -156,10 +157,7 @@ export async function POST(req: NextRequest) {
     requirementSnippet = requirements?.requirement?.substring(0, 60);
 
     // Build user profile string for language inference context
-    const userProfileText =
-      requirements.userNickname || requirements.userBio
-        ? `## Student Profile\n\nStudent: ${requirements.userNickname || 'Unknown'}${requirements.userBio ? ` — ${requirements.userBio}` : ''}\n\nConsider this student's background when designing the course. Adapt difficulty, examples, and teaching approach accordingly.\n\n---`
-        : '';
+    const userProfileText = formatStudentProfile(requirements.studentProfile);
 
     // Detect vision capability
     const hasVision = !!modelInfo?.capabilities?.vision;

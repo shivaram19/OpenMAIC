@@ -12,7 +12,11 @@ import type {
   ImageMapping,
 } from '@/lib/types/generation';
 import { buildPrompt, PROMPT_IDS } from '@/lib/prompts';
-import { formatImageDescription, formatImagePlaceholder } from './prompt-formatters';
+import {
+  formatImageDescription,
+  formatImagePlaceholder,
+  formatStudentProfile,
+} from './prompt-formatters';
 import { parseJsonResponse } from './json-repair';
 import { uniquifyMediaElementIds } from './scene-builder';
 import type { AICallFn, GenerationResult, GenerationCallbacks } from './pipeline-types';
@@ -78,10 +82,7 @@ export async function generateSceneOutlinesFromRequirements(
   }
 
   // Build user profile string for prompt injection
-  const userProfileText =
-    requirements.userNickname || requirements.userBio
-      ? `## Student Profile\n\nStudent: ${requirements.userNickname || 'Unknown'}${requirements.userBio ? ` — ${requirements.userBio}` : ''}\n\nConsider this student's background when designing the course. Adapt difficulty, examples, and teaching approach accordingly.\n\n---`
-      : '';
+  const userProfileText = formatStudentProfile(requirements.studentProfile);
 
   // Build media snippet conditions based on enabled flags.
   const imageEnabled = options?.imageGenerationEnabled ?? false;

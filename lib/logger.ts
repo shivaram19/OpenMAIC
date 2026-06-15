@@ -10,19 +10,43 @@ function isJsonFormat(): boolean {
   return process.env.LOG_FORMAT === 'json';
 }
 
+function stringifyArg(arg: unknown): string {
+  if (arg instanceof Error) return arg.stack ?? arg.message;
+  if (typeof arg === 'string') return arg;
+  return JSON.stringify(arg);
+}
+
 function formatLine(level: LogLevel, tag: string, args: unknown[]): string {
   const timestamp = new Date().toISOString();
   const upperLevel = level.toUpperCase();
-  const msg = args
-    .map((a) =>
-      a instanceof Error ? (a.stack ?? a.message) : typeof a === 'string' ? a : JSON.stringify(a),
-    )
-    .join(' ');
+
+  // Separate structured fields from message parts.
+  const structured: Record<string, unknown> = {};
+  const messages: string[] = [];
+
+  for (const arg of args) {
+    if (arg && typeof arg === 'object' && !Array.isArray(arg) && !(arg instanceof Error)) {
+      Object.assign(structured, arg);
+    } else {
+      messages.push(stringifyArg(arg));
+    }
+  }
 
   if (isJsonFormat()) {
-    return JSON.stringify({ timestamp, level: upperLevel, tag, message: msg });
+    return JSON.stringify({
+      timestamp,
+      level: upperLevel,
+      tag,
+      ...structured,
+      message: messages.join(' '),
+    });
   }
-  return `[${timestamp}] [${upperLevel}] [${tag}] ${msg}`;
+
+  const fields = Object.entries(structured)
+    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    .join(' ');
+
+  return `[${timestamp}] [${upperLevel}] [${tag}] ${messages.join(' ')}${fields ? ` | ${fields}` : ''}`;
 }
 
 export function createLogger(tag: string) {

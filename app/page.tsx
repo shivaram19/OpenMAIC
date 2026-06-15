@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowUp,
@@ -19,9 +20,9 @@ import {
   Monitor,
   ChevronUp,
   Upload,
-  Sparkles,
   Atom,
   X,
+  FileText,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -362,6 +363,17 @@ function HomePage() {
         ref={toolbarRef}
         className="fixed top-4 right-4 z-50 flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
       >
+        {/* Worksheet Generator Link */}
+        <Link
+          href="/worksheet"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          Worksheets
+        </Link>
+
+        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
+
         {/* Language Selector */}
         <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
 

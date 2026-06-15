@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   output: process.env.VERCEL ? undefined : 'standalone',
   transpilePackages: ['mathml2omml', 'pptxgenjs'],
   serverExternalPackages: [],
+  // Playwright 1.60.0 uses a computed require() for browsers.json that Next.js
+  // file tracing cannot follow. Explicitly include it so standalone builds work.
+  // See: https://github.com/microsoft/playwright/issues/41248
+  outputFileTracingIncludes: {
+    '/api/generate-worksheet-pdf': [
+      './node_modules/.pnpm/playwright-core@*/node_modules/playwright-core/**',
+    ],
+  },
   experimental: {
     proxyClientMaxBodySize: '200mb',
   },

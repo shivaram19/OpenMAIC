@@ -46,10 +46,28 @@ export interface UploadedDocument {
  * Simplified user requirements for course generation
  * All details (topic, duration, style, etc.) should be included in the requirement text
  */
+export interface StudentProfile {
+  name: string;
+  grade?: string;
+  class?: string;
+  school?: string;
+  weakTopics?: string[];
+  strongTopics?: string[];
+  attendanceRate?: number; // 0-1
+  engagementLevel?: 'low' | 'medium' | 'high';
+  pastPerformance?: {
+    topic: string;
+    accuracy: number; // 0-1
+    attempts: number;
+    lastAttemptedAt?: string;
+  }[];
+}
+
 export interface UserRequirements {
   requirement: string; // Single free-form text for all user input
   userNickname?: string; // Student nickname for personalization
   userBio?: string; // Student background for personalization
+  studentProfile?: StudentProfile; // Detailed student profile for worksheet/classroom personalization
   webSearch?: boolean; // Enable web search for richer context
   interactiveMode?: boolean; // Enable Interactive Mode for interactive-first generation
 }

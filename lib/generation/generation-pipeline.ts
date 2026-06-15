@@ -20,6 +20,7 @@ export {
   buildCourseContext,
   formatAgentsForPrompt,
   formatTeacherPersonaForPrompt,
+  formatStudentProfile,
   formatImageDescription,
   formatImagePlaceholder,
   buildVisionUserContent,

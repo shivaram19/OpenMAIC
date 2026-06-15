@@ -18,6 +18,7 @@ import type {
   PdfImage,
   ImageMapping,
   WidgetOutline,
+  StudentProfile,
 } from '@/lib/types/generation';
 import type { WidgetType, WidgetConfig, TeacherAction } from '@/lib/types/widgets';
 import type { PromptId } from '@/lib/prompts/types';
@@ -35,6 +36,7 @@ import {
   buildLanguageText,
   formatAgentsForPrompt,
   formatTeacherPersonaForPrompt,
+  formatStudentProfile,
   formatImageDescription,
   formatImagePlaceholder,
 } from './prompt-formatters';
@@ -71,6 +73,7 @@ export interface SceneContentOptions {
   agents?: AgentInfo[];
   languageDirective?: string;
   thinkingConfig?: ThinkingConfig;
+  studentProfile?: StudentProfile;
 }
 
 export interface SceneActionsOptions {
@@ -293,6 +296,7 @@ export async function generateSceneContent(
     agents,
     languageDirective,
     thinkingConfig,
+    studentProfile,
   } = options;
 
   // Unified path for interactive scenes (both normal and ultra mode)
@@ -332,7 +336,7 @@ export async function generateSceneContent(
         languageDirective,
       );
     case 'quiz':
-      return generateQuizContent(outline, aiCall, languageDirective);
+      return generateQuizContent(outline, aiCall, languageDirective, studentProfile);
     case 'pbl':
       return generatePBLSceneContent(outline, languageModel, languageDirective, thinkingConfig);
     default:
@@ -843,6 +847,7 @@ async function generateQuizContent(
   outline: SceneOutline,
   aiCall: AICallFn,
   languageDirective?: string,
+  studentProfile?: StudentProfile,
 ): Promise<GeneratedQuizContent | null> {
   const quizConfig = outline.quizConfig || {
     questionCount: 3,
@@ -858,6 +863,7 @@ async function generateQuizContent(
     difficulty: quizConfig.difficulty,
     questionTypes: quizConfig.questionTypes.join(', '),
     languageDirective: languageDirective || '',
+    studentProfile: formatStudentProfile(studentProfile),
   });
 
   if (!prompts) {
