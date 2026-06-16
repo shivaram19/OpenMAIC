@@ -52,13 +52,21 @@ Emphasize weak topics. Address the student by name where natural. Output ONLY a 
     { retries: 1 },
   );
 
-  const text = result.text;
-  const match = text.match(/\[[\s\S]*\]/);
-  if (!match) {
-    throw new Error('Failed to parse generated questions');
+  const text = result.text.trim();
+  
+  // Try parsing the entire response first
+  let questions: QuizQuestion[];
+  try {
+    questions = JSON.parse(text) as QuizQuestion[];
+  } catch {
+    // Fall back to extracting first JSON array
+    const match = text.match(/\[[\s\S]*?\]/); // non-greedy
+    if (!match) {
+      throw new Error('Failed to parse generated questions: no JSON array found');
+    }
+    questions = JSON.parse(match[0]) as QuizQuestion[];
   }
-
-  const questions = JSON.parse(match[0]) as QuizQuestion[];
+  
   return questions.map((q, i) => ({
     ...q,
     id: q.id || `q_${i + 1}`,
