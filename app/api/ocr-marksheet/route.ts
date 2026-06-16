@@ -118,8 +118,16 @@ export async function POST(req: NextRequest) {
     );
 
     const parsed = parseJsonResponse<{ rows: ParsedStudentRow[] }>(result.text);
-    if (!parsed || !Array.isArray(parsed.rows)) {
+    if (!parsed || !Array.isArray(parsed.rows) || parsed.rows.length === 0) {
       return apiError('GENERATION_FAILED', 500, 'Failed to parse OCR response');
+    }
+    
+    // Validate at least one row has a name field
+    const hasValidRow = parsed.rows.some(row => 
+      typeof row === 'object' && row !== null && typeof row.name === 'string'
+    );
+    if (!hasValidRow) {
+      return apiError('GENERATION_FAILED', 500, 'OCR response contains no valid student rows');
     }
 
     // Apply default context values if provided
