@@ -42,6 +42,15 @@ async function verifyToken(token: string, accessCode: string): Promise<boolean> 
 }
 
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get('host') || '';
+
+  // Serve the Abhyāsa landing page at abhyasa.trayini.ai
+  if (host.startsWith('abhyasa.') && request.nextUrl.pathname === '/') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/abhyasa';
+    return NextResponse.rewrite(url);
+  }
+
   const accessCode = process.env.ACCESS_CODE;
   if (!accessCode) {
     return NextResponse.next();

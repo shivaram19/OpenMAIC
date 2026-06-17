@@ -1,9 +1,18 @@
 'use client';
 
 import { useEffect, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { AccessCodeModal } from '@/components/access-code-modal';
 
+// Public landing pages that must remain accessible without an access code.
+const PUBLIC_PATHS = ['/abhyasa'];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((publicPath) => pathname === publicPath || pathname.startsWith(`${publicPath}/`));
+}
+
 export function AccessCodeGuard({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [status, setStatus] = useState<{
     enabled: boolean;
     authenticated: boolean;
@@ -34,7 +43,8 @@ export function AccessCodeGuard({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const needsAuth = !status.loading && status.enabled && !status.authenticated;
+  const needsAuth =
+    !isPublicPath(pathname) && !status.loading && status.enabled && !status.authenticated;
 
   return (
     <>

@@ -31,7 +31,7 @@ export interface BoardContext {
   answerFormats?: ('mcq' | 'short' | 'long' | 'case_based')[];
 }
 
-const BOARD_LABELS: Record<SupportedBoard, string> = {
+export const BOARD_LABELS: Record<SupportedBoard, string> = {
   cbse: 'CBSE (NCERT-based)',
   msbshse: 'Maharashtra State Board (MSBSHSE)',
   kseab: 'Karnataka State Board (KSEAB / SSLC)',
@@ -43,7 +43,7 @@ const BOARD_LABELS: Record<SupportedBoard, string> = {
   other: 'Other board',
 };
 
-const MEDIUM_LABELS: Record<SupportedMedium, string> = {
+export const MEDIUM_LABELS: Record<SupportedMedium, string> = {
   en: 'English',
   hi: 'Hindi',
   mr: 'Marathi',
@@ -55,7 +55,7 @@ const MEDIUM_LABELS: Record<SupportedMedium, string> = {
   other: 'Other medium',
 };
 
-const TRACK_LABELS: Record<ExamTrack, string> = {
+export const TRACK_LABELS: Record<ExamTrack, string> = {
   board: 'Board exam preparation',
   jee_foundation: 'JEE foundation track',
   neet_foundation: 'NEET foundation track',

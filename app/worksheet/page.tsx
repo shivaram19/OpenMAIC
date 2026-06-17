@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import type { StudentProfile } from '@/lib/types/generation';
-import type { SceneOutline } from '@/lib/types/generation';
-import type { GeneratedQuizContent } from '@/lib/types/generation';
+import type { StudentProfile, SceneOutline, GeneratedQuizContent } from '@/lib/types/generation';
 import type { QuizQuestion } from '@/lib/types/stage';
 
 import { StudentProfileForm } from '@/components/worksheet/student-profile-form';
@@ -22,15 +20,43 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Printer, Wand2, Users, ArrowLeft, Files } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Printer, Wand2, Users, ArrowLeft, Files, GraduationCap, BookOpen } from 'lucide-react';
 import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { toast } from 'sonner';
+import {
+  BOARD_LABELS,
+  MEDIUM_LABELS,
+  TRACK_LABELS,
+  type SupportedBoard,
+  type SupportedMedium,
+  type ExamTrack,
+  validateBoardContext,
+  buildBoardContextPrompt,
+  defaultExcludedTopics,
+  boardDisplayLabels,
+} from '@/lib/worksheet/board-context';
 
 const QUESTION_TYPE_OPTIONS = [
   { value: 'single', label: 'Single Choice' },
   { value: 'multiple', label: 'Multiple Choice' },
   { value: 'short_answer', label: 'Short Answer' },
 ] as const;
+
+const BOARD_OPTIONS = Object.entries(BOARD_LABELS).map(([value, label]) => ({
+  value: value as SupportedBoard,
+  label,
+}));
+
+const MEDIUM_OPTIONS = Object.entries(MEDIUM_LABELS).map(([value, label]) => ({
+  value: value as SupportedMedium,
+  label,
+}));
+
+const TRACK_OPTIONS = Object.entries(TRACK_LABELS).map(([value, label]) => ({
+  value: value as ExamTrack,
+  label,
+}));
 
 export default function WorksheetPage() {
   const { students, loading: studentsLoading, fetchStudents } = useStudentStore();
@@ -46,6 +72,12 @@ export default function WorksheetPage() {
     attendanceRate: undefined,
     pastPerformance: [],
   });
+
+  const [board, setBoard] = useState<SupportedBoard>('cbse');
+  const [medium, setMedium] = useState<SupportedMedium>('en');
+  const [track, setTrack] = useState<ExamTrack>('board');
+  const [excludedTopics, setExcludedTopics] = useState<string[]>([]);
+
   const [topic, setTopic] = useState('Fractions and Decimals for Class 5');
   const [questionCount, setQuestionCount] = useState(8);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
@@ -68,6 +100,26 @@ export default function WorksheetPage() {
       setStudent(first);
     }
   }, [students, selectedStudentId]);
+
+  useEffect(() => {
+    const gradeNum = Number(student.grade);
+    setExcludedTopics(
+      defaultExcludedTopics(board, Number.isNaN(gradeNum) ? undefined : gradeNum),
+    );
+  }, [board, student.grade]);
+
+  const boardContext = useMemo(() => {
+    const gradeNum = Number(student.grade);
+    return validateBoardContext({
+      board,
+      medium,
+      grade: Number.isNaN(gradeNum) ? undefined : gradeNum,
+      track,
+      excludedTopics,
+    });
+  }, [board, medium, student.grade, track, excludedTopics]);
+
+  const boardLabels = useMemo(() => boardDisplayLabels(boardContext), [boardContext]);
 
   const handleSelectStudent = (id: string) => {
     const found = students.find((s) => s.id === id);
@@ -98,13 +150,17 @@ export default function WorksheetPage() {
 
     try {
       const modelConfig = getCurrentModelConfig();
+      const boardPrompt = buildBoardContextPrompt(boardContext, topic);
+      const weakTopicsText = (student.weakTopics || []).join(', ') || topic;
+
       const outline: SceneOutline = {
         id: 'worksheet-quiz',
         type: 'quiz',
         title: topic,
-        description: `Personalized worksheet for ${student.name} focusing on ${(student.weakTopics || []).join(', ') || topic}. ${extraInstructions}`,
+        description: `${boardPrompt}\n\nPersonalized worksheet for ${student.name} focusing on ${weakTopicsText}. ${extraInstructions}`.trim(),
         keyPoints: [
-          `Focus on weak topics: ${(student.weakTopics || []).join(', ') || topic}`,
+          boardPrompt,
+          `Focus on weak topics: ${weakTopicsText}`,
           `Student grade: ${student.grade || 'unspecified'}`,
           `Adjust difficulty: ${difficulty}`,
           extraInstructions || 'Follow standard curriculum for the topic.',
@@ -116,6 +172,10 @@ export default function WorksheetPage() {
           questionTypes: selectedTypes as ('single' | 'multiple' | 'text')[],
         },
       };
+
+      const mediumName = boardLabels.mediumLabel;
+      const boardName = boardLabels.boardLabel;
+      const languageDirective = `Teach in ${mediumName} at a ${student.grade ? `grade ${student.grade}` : 'school'} level. Use terminology from ${boardName}. Respect excluded topics and answer formats.`;
 
       const res = await fetch('/api/generate/scene-content', {
         method: 'POST',
@@ -130,8 +190,9 @@ export default function WorksheetPage() {
           outline,
           allOutlines: [outline],
           stageId: 'worksheet-stage',
-          languageDirective: `Teach in English at a ${student.grade ? `grade ${student.grade}` : 'school'} level.`,
+          languageDirective,
           studentProfile: student,
+          boardContext,
         }),
       });
 
@@ -162,7 +223,7 @@ export default function WorksheetPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 print:bg-white print:py-0">
+    <div className="min-h-screen bg-background py-8 print:bg-white print:py-0">
       <style jsx global>{`
         @media print {
           body * {
@@ -185,14 +246,16 @@ export default function WorksheetPage() {
       `}</style>
 
       <main className="mx-auto max-w-5xl space-y-8 px-4 print:hidden">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Personalized Student Worksheet</h1>
-            <p className="mt-2 text-slate-600">
-              Generate a practice sheet tailored to one student&apos;s weak topics, pace, and level.
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Personalized Student Worksheet
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Generate a board-aligned practice sheet tailored to one student&apos;s weak topics, pace, and level.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href="/">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="mr-1 h-4 w-4" />
@@ -214,9 +277,12 @@ export default function WorksheetPage() {
           </div>
         </div>
 
-        <div className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Select Student</h3>
+        <section className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Select Student</h2>
+            </div>
             <div className="flex gap-2">
               <Link href="/students">
                 <Button variant="outline" size="sm">
@@ -232,12 +298,13 @@ export default function WorksheetPage() {
               </Link>
             </div>
           </div>
+
           {studentsLoading && students.length === 0 ? (
-            <div className="text-sm text-slate-500">Loading students...</div>
+            <div className="text-sm text-muted-foreground">Loading students...</div>
           ) : students.length === 0 ? (
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-muted-foreground">
               No students found.{' '}
-              <Link href="/students" className="font-medium underline">
+              <Link href="/students" className="font-medium underline underline-offset-2 hover:text-primary">
                 Add a student
               </Link>{' '}
               first.
@@ -259,10 +326,61 @@ export default function WorksheetPage() {
           )}
 
           <StudentProfileForm value={student} onChange={setStudent} />
-        </div>
+        </section>
 
-        <div className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="text-lg font-semibold">Worksheet Settings</h3>
+        <section className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Board & Syllabus</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="board">Board</Label>
+              <Select value={board} onValueChange={(v) => setBoard(v as SupportedBoard)}>
+                <SelectTrigger id="board">
+                  <SelectValue placeholder="Select board" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOARD_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="medium">Medium of Instruction</Label>
+              <Select value={medium} onValueChange={(v) => setMedium(v as SupportedMedium)}>
+                <SelectTrigger id="medium">
+                  <SelectValue placeholder="Select medium" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEDIUM_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track">Track</Label>
+              <Select value={track} onValueChange={(v) => setTrack(v as ExamTrack)}>
+                <SelectTrigger id="track">
+                  <SelectValue placeholder="Select track" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRACK_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="topic">Topic / Syllabus</Label>
@@ -273,6 +391,21 @@ export default function WorksheetPage() {
               placeholder="e.g. Fractions for Class 5"
             />
           </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{boardLabels.boardLabel}</Badge>
+            <Badge variant="secondary">{boardLabels.mediumLabel}</Badge>
+            <Badge variant="secondary">{boardLabels.trackLabel}</Badge>
+            {excludedTopics.length > 0 && (
+              <Badge variant="outline" className="border-destructive text-destructive">
+                Excludes: {excludedTopics.join(', ')}
+              </Badge>
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Worksheet Settings</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
@@ -338,16 +471,16 @@ export default function WorksheetPage() {
             ) : (
               <>
                 <Wand2 className="mr-2 h-4 w-4" />
-                Generate Worksheet for {student.name}
+                Generate Worksheet{student.name ? ` for ${student.name}` : ''}
               </>
             )}
           </Button>
-        </div>
+        </section>
 
         {questions.length > 0 && (
-          <div className="space-y-4">
+          <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Preview</h3>
+              <h2 className="text-lg font-semibold">Preview</h2>
               <Button variant="outline" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print / Save as PDF
@@ -359,8 +492,9 @@ export default function WorksheetPage() {
               topic={topic}
               questions={questions}
               generatedAt={generatedAt}
+              boardContext={boardContext}
             />
-          </div>
+          </section>
         )}
       </main>
 
@@ -372,6 +506,7 @@ export default function WorksheetPage() {
             topic={topic}
             questions={questions}
             generatedAt={generatedAt}
+            boardContext={boardContext}
           />
         </div>
       )}

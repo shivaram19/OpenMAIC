@@ -93,12 +93,18 @@ Use warm, tinted neutrals. Avoid the purple primary inherited from OpenMAIC.
 - Big numbers: worksheets completed, accuracy trend, top gap.
 - WhatsApp-friendly image export option.
 
-### Marketing Landing Page
+### Marketing Landing Page (Abhyāsa)
 
-- Hero: headline + the 4-step loop diagram.
-- Social proof: anonymized before/after marks improvement.
-- Pricing cards: Starter (free), Growth, Enterprise.
-- Footer: DPDP compliance note, India-hosted badge, contact.
+- Served at `abhyasa.trayini.ai` via middleware rewrite to `/abhyasa`.
+- Hero: benefit-first headline, Sanskrit epigraph (Yoga Sūtra 1.14), dual CTAs, trust bar.
+- Problem section mirrors audience pain points before presenting the solution.
+- Loop diagram: Generate → Print → Scan → Adapt.
+- Features: board-aligned, multilingual, phone-scan grading, adaptive practice, DPDP-ready, parent reports.
+- Audience cards: tuition centres, budget schools, parents, students.
+- Pricing cards: Starter (free), Growth (popular), Enterprise.
+- Pilot form: minimal fields, privacy note, mailto fallback.
+- FAQ: objections around boards, hardware, data safety, languages, pilot terms.
+- See `docs/research/abhyasa-landing-design-decomposition.md` for component-dimension mapping.
 
 ---
 
@@ -149,3 +155,6 @@ Use warm, tinted neutrals. Avoid the purple primary inherited from OpenMAIC.
 - `lib/worksheet/pdf-template.ts` — worksheet PDF HTML structure.
 - `app/api/generate-worksheet-pdf/route.ts` — worksheet generation API.
 - `components/ui/*` — shadcn/ui components using the tokens above.
+- `app/abhyasa/page.tsx` + `app/abhyasa/landing-content.tsx` — public marketing landing page.
+- `docs/research/abhyasa-landing-design-decomposition.md` — component & dimension decomposition.
+- `docs/research/abhyasa-landing-research.md` — research backing for name, audience, conversion, and design.
