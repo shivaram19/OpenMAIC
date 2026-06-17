@@ -1,18 +1,22 @@
 import type { QuizQuestion } from '@/lib/types/stage';
 import type { StudentProfile } from '@/lib/types/generation';
+import type { BoardContext } from './board-context';
+import { boardDisplayLabels } from './board-context';
 
 export interface WorksheetPDFData {
   student: StudentProfile;
   topic: string;
   questions: QuizQuestion[];
   generatedAt: string;
+  boardContext?: BoardContext;
 }
 
 export function buildWorksheetHTML(data: WorksheetPDFData): string {
-  const { student, topic, questions, generatedAt } = data;
+  const { student, topic, questions, generatedAt, boardContext } = data;
 
   const weakTopics = (student.weakTopics || []).join(', ') || 'General review';
   const strongTopics = (student.strongTopics || []).join(', ') || '-';
+  const { boardLabel, mediumLabel, trackLabel } = boardDisplayLabels(boardContext ?? { board: 'cbse' });
 
   const questionRows = questions
     .map((q, idx) => {
@@ -83,6 +87,8 @@ export function buildWorksheetHTML(data: WorksheetPDFData): string {
 
       <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
         <div><strong>Topic:</strong> ${escapeHtml(topic)}</div>
+        <div><strong>Board:</strong> ${escapeHtml(boardLabel)} (${escapeHtml(trackLabel)})</div>
+        <div><strong>Medium:</strong> ${escapeHtml(mediumLabel)}</div>
         <div><strong>Focus areas:</strong> ${escapeHtml(weakTopics)}</div>
         <div><strong>Strong topics:</strong> ${escapeHtml(strongTopics)}</div>
       </div>
@@ -110,6 +116,7 @@ export function buildWorksheetHTML(data: WorksheetPDFData): string {
         <li>For multiple-choice questions, circle the correct option.</li>
         <li>For short-answer questions, write your answer in the space provided.</li>
         <li>Show your work where possible.</li>
+        ${boardContext?.excludedTopics && boardContext.excludedTopics.length > 0 ? `<li><strong>Note:</strong> This worksheet excludes ${escapeHtml(boardContext.excludedTopics.join(', '))} per ${escapeHtml(boardLabel)} syllabus.</li>` : ''}
       </ul>
     </div>
 

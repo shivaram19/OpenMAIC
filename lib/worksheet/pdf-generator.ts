@@ -4,12 +4,14 @@ import type { StudentProfile } from '@/lib/types/generation';
 import { createLogger } from '@/lib/logger';
 import { buildWorksheetHTML } from './pdf-template';
 import { ConcurrencyLimiter, getPDFConcurrencyLimit } from './concurrency-limiter';
+import type { BoardContext } from './board-context';
 
 export interface GeneratePDFOptions {
   student: StudentProfile;
   topic: string;
   questions: QuizQuestion[];
   generatedAt: string;
+  boardContext?: BoardContext;
 }
 
 const log = createLogger('Worksheet PDF Generator');
@@ -30,6 +32,7 @@ export async function generateWorksheetPDF(options: GeneratePDFOptions): Promise
         topic: options.topic,
         questions: options.questions,
         generatedAt: options.generatedAt,
+        boardContext: options.boardContext,
       });
 
       const browser = await chromium.launch({ headless: true });
@@ -95,6 +98,7 @@ export async function generateMultipleWorksheetPDFs(items: GeneratePDFOptions[])
           topic: item.topic,
           questions: item.questions,
           generatedAt: item.generatedAt,
+          boardContext: item.boardContext,
         });
         const page = await context.newPage();
         await page.setContent(html, { waitUntil: 'networkidle' });

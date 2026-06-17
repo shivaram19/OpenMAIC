@@ -7,6 +7,12 @@ import { createLogger } from '@/lib/logger';
 import { generateWorksheetPDF } from '@/lib/worksheet/pdf-generator';
 import type { QuizQuestion } from '@/lib/types/stage';
 import type { StudentProfile } from '@/lib/types/generation';
+import {
+  type BoardContext,
+  validateBoardContext,
+  buildBoardContextPrompt,
+  defaultExcludedTopics,
+} from '@/lib/worksheet/board-context';
 
 const log = createLogger('Worksheet PDF API');
 
@@ -19,6 +25,13 @@ interface PDFRequestBody {
   difficulty: 'easy' | 'medium' | 'hard';
   questionTypes: ('single' | 'multiple' | 'text')[];
   extraInstructions?: string;
+  board?: BoardContext['board'];
+  medium?: BoardContext['medium'];
+  grade?: number;
+  track?: BoardContext['track'];
+  excludedTopics?: string[];
+  includedTopics?: string[];
+  answerFormats?: BoardContext['answerFormats'];
 }
 
 async function generateQuestionsForStudent(
@@ -26,7 +39,27 @@ async function generateQuestionsForStudent(
   config: Omit<PDFRequestBody, 'students'>,
   model: LanguageModel,
 ): Promise<QuizQuestion[]> {
-  const prompt = `Generate ${config.questionCount} ${config.difficulty} questions for the topic "${config.topic}".
+  const boardContext = validateBoardContext({
+    board: config.board,
+    medium: config.medium,
+    grade: config.grade,
+    track: config.track,
+    excludedTopics: config.excludedTopics,
+    includedTopics: config.includedTopics,
+    answerFormats: config.answerFormats,
+  });
+
+  // Merge user-provided exclusions with known board defaults.
+  const knownExclusions = defaultExcludedTopics(boardContext.board, boardContext.grade);
+  boardContext.excludedTopics = Array.from(
+    new Set([...(boardContext.excludedTopics || []), ...knownExclusions]),
+  );
+
+  const boardPrompt = buildBoardContextPrompt(boardContext, config.topic);
+
+  const prompt = `${boardPrompt}
+
+Generate ${config.questionCount} ${config.difficulty} questions for the topic "${config.topic}".
 
 Student Profile:
 Name: ${student.name}
@@ -35,12 +68,12 @@ Weak topics: ${(student.weakTopics || []).join(', ') || 'None specified'}
 Strong topics: ${(student.strongTopics || []).join(', ') || 'None specified'}
 Past performance: ${(student.pastPerformance || []).map((p) => `- ${p.topic}: ${Math.round(p.accuracy * 100)}% over ${p.attempts} attempts`).join('\n') || 'No records'}
 
-Emphasize weak topics. Address the student by name where natural. Output ONLY a JSON array of question objects.`;
+${config.extraInstructions ? `Additional instructions: ${config.extraInstructions}\n` : ''}Emphasize weak topics. Address the student by name where natural. Output ONLY a JSON array of question objects.`;
 
   const result = await callLLM(
     {
       model,
-      system: `You are a professional educational assessment designer. Generate quiz questions as a JSON array. Every question must include analysis and points. If math formulas are needed, use plain text description instead of LaTeX syntax.`,
+      system: `You are a professional educational assessment designer for Indian school curricula. Generate quiz questions as a JSON array. Respect the board context, excluded topics, and answer formats. Every question must include analysis and points. If math formulas are needed, use plain text description instead of LaTeX syntax.`,
       messages: [
         {
           role: 'user' as const,
@@ -76,7 +109,21 @@ Emphasize weak topics. Address the student by name where natural. Output ONLY a 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as PDFRequestBody;
-    const { students, topic, questionCount, difficulty, questionTypes, extraInstructions } = body;
+    const {
+      students,
+      topic,
+      questionCount,
+      difficulty,
+      questionTypes,
+      extraInstructions,
+      board,
+      medium,
+      grade,
+      track,
+      excludedTopics,
+      includedTopics,
+      answerFormats,
+    } = body;
 
     if (!Array.isArray(students) || students.length === 0) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'No students provided');
@@ -92,7 +139,23 @@ export async function POST(req: NextRequest) {
     }
 
     const { model, modelString } = await resolveModelFromHeaders(req);
-    log.info(`Generating ${students.length} worksheet PDFs [model=${modelString}, topic=${topic}]`);
+    log.info({
+      studentCount: students.length,
+      board: board ?? 'cbse',
+      track: track ?? 'board',
+      topic,
+      model: modelString,
+    }, 'Worksheet PDF request received');
+
+    const sharedBoardContext = validateBoardContext({
+      board,
+      medium,
+      grade,
+      track,
+      excludedTopics,
+      includedTopics,
+      answerFormats,
+    });
 
     // Generate questions for all students in parallel
     const generated = await Promise.all(
@@ -100,13 +163,26 @@ export async function POST(req: NextRequest) {
         try {
           const questions = await generateQuestionsForStudent(
             student,
-            { topic, questionCount, difficulty, questionTypes, extraInstructions },
+            {
+              topic,
+              questionCount,
+              difficulty,
+              questionTypes,
+              extraInstructions,
+              board: sharedBoardContext.board,
+              medium: sharedBoardContext.medium,
+              grade: sharedBoardContext.grade,
+              track: sharedBoardContext.track,
+              excludedTopics: sharedBoardContext.excludedTopics,
+              includedTopics: sharedBoardContext.includedTopics,
+              answerFormats: sharedBoardContext.answerFormats,
+            },
             model,
           );
           return { student, questions, error: null };
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
-          log.error(`Failed to generate questions for ${student.name}:`, error);
+          log.error({ error: msg }, 'Failed to generate questions for student');
           return { student, questions: [], error: msg };
         }
       }),
@@ -132,6 +208,7 @@ export async function POST(req: NextRequest) {
           topic,
           questions: g.questions,
           generatedAt,
+          boardContext: sharedBoardContext,
         }),
       ),
     );
