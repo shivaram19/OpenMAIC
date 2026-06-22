@@ -60,8 +60,8 @@ export default function DrMathLandingPage() {
               Worksheets that learn how your students learn
             </h1>
             <p className="mt-6 text-lg text-muted-foreground md:text-xl">
-              Generate board-aligned worksheets, grade them by scanning OMR strips with a phone,
-              and let Dr. Math recommend the next practice set for every student.
+              Generate board-aligned worksheets, grade them by scanning OMR strips with a phone, and
+              let Dr. Math recommend the next practice set for every student.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Button size="lg" asChild>
@@ -69,6 +69,9 @@ export default function DrMathLandingPage() {
               </Button>
               <Button variant="outline" size="lg" asChild>
                 <Link href="/worksheet">Try the worksheet builder</Link>
+              </Button>
+              <Button size="lg" variant="secondary" asChild>
+                <Link href="/engine/demo">See end-to-end engine demo</Link>
               </Button>
             </div>
           </div>
@@ -128,8 +131,8 @@ export default function DrMathLandingPage() {
               <School className="h-6 w-6 text-primary" />
               <h3 className="mt-4 text-lg font-semibold">Board-aligned</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                CBSE, Maharashtra, Karnataka, Tamil Nadu, UP, Bihar. Reduced-syllabus exclusions
-                are respected automatically.
+                CBSE, Maharashtra, Karnataka, Tamil Nadu, UP, Bihar. Reduced-syllabus exclusions are
+                respected automatically.
               </p>
             </div>
             <div>
