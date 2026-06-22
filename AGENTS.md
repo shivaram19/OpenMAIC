@@ -111,6 +111,7 @@ Use sequential numbers. If an existing ADR is superseded, update its status and 
 | `docs/decisions/DECISION-20260614-001-pdf-rendering.md` | Server-side PDF rendering with Playwright | Accepted |
 | `docs/decisions/DECISION-20260615-002-pdf-observability-concurrency.md` | PDF concurrency limiter + structured logging | Accepted |
 | `docs/adrs/ADR-001-adaptive-engine-with-omr-loop.md` | Adaptive worksheet engine + OMR scan loop | Proposed |
+| `docs/adrs/ADR-002-end-to-end-demo-engine.md` | End-to-end demo engine with mock data | Accepted |
 | `docs/research/research-report-001-dr-math-adaptive-engine.md` | Research synthesis for Dr. Math | Proposed |
 
 ---
